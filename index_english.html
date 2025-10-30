@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Agent Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .agent-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .agent-name {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            background: #25d366;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Main container */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Conversations list */
+        .conversations-list {
+            width: 380px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .conversations-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f7f8fa;
+        }
+        
+        .conversations-header h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #111;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 6px 14px;
+            border: 1px solid #d1d7db;
+            background: white;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #54656f;
+        }
+        
+        .filter-btn:hover {
+            background: #f0f2f5;
+        }
+        
+        .filter-btn.active {
+            background: #128c7e;
+            color: white;
+            border-color: #128c7e;
+        }
+        
+        .search-box {
+            padding: 10px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #d1d7db;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .search-box input:focus {
+            border-color: #128c7e;
+        }
+        
+        .conversations-scroll {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .conversation-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+        
+        .conversation-item:hover {
+            background: #f5f6f6;
+        }
+        
+        .conversation-item.active {
+            background: #e8f5e9;
+            border-left: 4px solid #25d366;
+        }
+        
+        .conversation-item.unread {
+            background: #fff9e6;
+        }
+        
+        .client-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #111;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .client-phone {
+            font-size: 12px;
+            color: #667781;
+            margin-bottom: 5px;
+        }
+        
+        .last-message {
+            color: #667781;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 250px;
+        }
+        
+        .conversation-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-ai-only {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .status-waiting-human {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-closed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .conversation-time {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        /* Chat area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #efeae2;
+        }
+        
+        .chat-header {
+            background: #f0f2f5;
+            padding: 15px 25px;
+            border-bottom: 1px solid #d1d7db;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .client-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .chat-header-text h2 {
+            font-size: 18px;
+            color: #111;
+            margin-bottom: 2px;
+        }
+        
+        .chat-header-text p {
+            font-size: 13px;
+            color: #667781;
+        }
+        
+        .takeover-btn {
+            padding: 10px 24px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .takeover-btn:hover {
+            background: #f57c00;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+        
+        .takeover-btn:active {
+            transform: translateY(0);
+        }
+        
+        .takeover-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .message {
+            max-width: 65%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-client {
+            align-self: flex-start;
+            background: white;
+        }
+        
+        .message-agent {
+            align-self: flex-end;
+            background: #d9fdd3;
+        }
+        
+        .message-bot {
+            align-self: flex-start;
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+        
+        .message-system {
+            align-self: center;
+            background: #fff3e0;
+            font-style: italic;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            color: #075e54;
+            margin-bottom: 4px;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #111;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #667781;
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        .empty-chat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #667781;
+        }
+        
+        .empty-chat-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        /* Chat input */
+        .chat-input-area {
+            background: #f0f2f5;
+            padding: 15px 20px;
+            border-top: 1px solid #d1d7db;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+        }
+        
+        #sendBtn {
+            padding: 12px 24px;
+            background: #128c7e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        #sendBtn:hover {
+            background: #0a7268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(18, 140, 126, 0.3);
+        }
+        
+        #sendBtn:active {
+            transform: translateY(0);
+        }
+        
+        #sendBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #128c7e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s;
+            z-index: 1000;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>💬 WhatsApp Agent Interface</h1>
+        <div class="agent-info">
+            <span class="agent-name">Agent: <strong id="agentName">Sarah</strong></span>
+            <div class="status-indicator" title="Online"></div>
+        </div>
+    </div>
+    
+    <!-- Main container -->
+    <div class="main-container">
+        <!-- Conversations list -->
+        <div class="conversations-list">
+            <div class="conversations-header">
+                <h2>Conversations</h2>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="ACTIVE">Active</button>
+                    <button class="filter-btn" data-filter="WAITING_HUMAN">Waiting</button>
+                    <button class="filter-btn" data-filter="AI_ONLY">Bot Only</button>
+                </div>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search conversations...">
+            </div>
+            
+            <div class="conversations-scroll" id="conversationsList">
+                <!-- Conversations will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Chat area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="client-avatar" id="clientAvatar">?</div>
+                    <div class="chat-header-text">
+                        <h2 id="currentClientName">Select a conversation</h2>
+                        <p id="currentClientPhone"></p>
+                    </div>
+                </div>
+                <button id="takeoverBtn" class="takeover-btn" disabled>
+                    🤚 Take Over
+                </button>
+            </div>
+            
+            <div class="chat-messages" id="messagesContainer">
+                <div class="empty-chat">
+                    <div class="empty-chat-icon">💬</div>
+                    <p>Select a conversation to start</p>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <div class="chat-input-container">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Type your message..." 
+                        rows="1"
+                        disabled
+                    ></textarea>
+                    <button id="sendBtn" disabled>Send ➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // CONFIGURATION - REPLACE WITH YOUR VALUES
+        // ========================================
+        const CONFIG = {
+            // Your n8n webhook URLs (copy from your n8n workflows)
+            N8N_WEBHOOK_SEND: 'https://n8n.srv910637.hstgr.cloud/webhook/agent-send-message',
+            N8N_WEBHOOK_TAKEOVER: 'https://n8n.srv910637.hstgr.cloud/webhook/agent-takeover',
+            
+            // Your Airtable API key (create one with limited permissions)
+            // Airtable → Account → Developer Hub → Personal Access Token
+            AIRTABLE_API_KEY: 'REPLACE_WITH_YOUR_AIRTABLE_KEY',
+            
+            // Your Airtable WhatsApp Support base ID
+            AIRTABLE_BASE_ID: 'app95Lz85VNeRsN4r',
+            
+            // Auto-refresh interval (in milliseconds)
+            REFRESH_INTERVAL: 5000, // 5 seconds
+            
+            // Default agent name
+            AGENT_NAME: 'Sarah'
+        };
+        
+        // ========================================
+        // STATE
+        // ========================================
+        let currentConversationId = null;
+        let currentFilter = 'all';
+        let conversations = [];
+        let messages = [];
+        
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (date.toDateString() === today.toDateString()) {
+                return 'Today';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Yesterday';
+            } else {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        }
+        
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        }
+        
+        // ========================================
+        // AIRTABLE API
+        // ========================================
+        async function fetchConversations() {
+            try {
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/Conversations?sort[0][field]=Last_Update&sort[0][direction]=desc`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+                        }
+                    }
+                );
+                
+                if (!response.ok) throw new Error('Error loading conversations');
+                
+                const data = await response.json();
+                conversations = data.records;
+                renderConversations();
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error loading conversations', 'error');
+            }
+        }
+        
+        async function fetchMessages(conversationId) {
+            try {
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/Messages?filterByFormula=SEARCH("${conversationId}",ARRAYJOIN({Conversation_ID}))&sort[0][field]=Timestamp&sort[0][direction]=asc`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+                        }
+                    }
+                );
+                
+                if (!response.ok) throw new Error('Error loading messages');
+                
+                const data = await response.json();
+                messages = data.records;
+                renderMessages();
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error loading messages', 'error');
+            }
+        }
+        
+        // ========================================
+        // RENDER FUNCTIONS
+        // ========================================
+        function renderConversations() {
+            const container = document.getElementById('conversationsList');
+            
+            let filtered = conversations;
+            
+            // Apply filter
+            if (currentFilter !== 'all') {
+                filtered = conversations.filter(conv => 
+                    conv.fields.Status === currentFilter
+                );
+            }
+            
+            // Apply search
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (searchTerm) {
+                filtered = filtered.filter(conv => 
+                    (conv.fields.Client_Name || '').toLowerCase().includes(searchTerm) ||
+                    (conv.fields.Phone || '').includes(searchTerm)
+                );
+            }
+            
+            container.innerHTML = '';
+            
+            filtered.forEach(conv => {
+                const div = document.createElement('div');
+                div.className = 'conversation-item';
+                if (conv.id === currentConversationId) {
+                    div.classList.add('active');
+                }
+                
+                const fields = conv.fields;
+                const statusClass = `status-${fields.Status?.toLowerCase().replace('_', '-') || 'ai-only'}`;
+                
+                div.innerHTML = `
+                    <div class="client-name">
+                        ${fields.Client_Name || 'Customer'}
+                        ${fields.Agent_Requested ? '🆘' : ''}
+                    </div>
+                    <div class="client-phone">${fields.Phone || ''}</div>
+                    <div class="last-message">${fields.Last_Message || 'No messages'}</div>
+                    <div class="conversation-meta">
+                        <span class="status-badge ${statusClass}">
+                            ${fields.Status || 'AI_ONLY'}
+                        </span>
+                        <span class="conversation-time">
+                            ${formatDate(fields.Last_Update || fields.Created)}
+                        </span>
+                    </div>
+                `;
+                
+                div.onclick = () => selectConversation(conv.id, fields);
+                container.appendChild(div);
+            });
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #999;">No conversations found</div>';
+            }
+        }
+        
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            
+            messages.forEach(msg => {
+                const fields = msg.fields;
+                const div = document.createElement('div');
+                
+                let messageClass = 'message ';
+                if (fields.Sender === 'CLIENT') {
+                    messageClass += 'message-client';
+                } else if (fields.Sender?.startsWith('AGENT')) {
+                    messageClass += 'message-agent';
+                } else if (fields.Sender === 'SYSTEM') {
+                    messageClass += 'message-system';
+                } else {
+                    messageClass += 'message-bot';
+                }
+                
+                div.className = messageClass;
+                
+                const senderLabel = fields.Sender === 'CLIENT' ? 'Customer' : 
+                                   fields.Sender?.startsWith('AGENT') ? fields.Sender.replace('AGENT_', 'Agent ') :
+                                   fields.Sender === 'SYSTEM' ? 'System' : 'Bot';
+                
+                div.innerHTML = `
+                    ${fields.Sender !== 'SYSTEM' ? `<div class="message-sender">${senderLabel}</div>` : ''}
+                    <div class="message-text">${fields.Message}</div>
+                    <div class="message-time">${formatTime(fields.Timestamp)}</div>
+                `;
+                
+                container.appendChild(div);
+            });
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // ========================================
+        // EVENT HANDLERS
+        // ========================================
+        function selectConversation(convId, fields) {
+            currentConversationId = convId;
+            
+            // Update UI
+            document.getElementById('currentClientName').textContent = fields.Client_Name || 'Customer';
+            document.getElementById('currentClientPhone').textContent = fields.Phone || '';
+            
+            const initials = getInitials(fields.Client_Name || 'Customer');
+            document.getElementById('clientAvatar').textContent = initials;
+            
+            // Enable/disable controls
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            
+            const takeoverBtn = document.getElementById('takeoverBtn');
+            takeoverBtn.disabled = fields.Status === 'ACTIVE';
+            
+            // Mark as selected
+            renderConversations();
+            
+            // Load messages
+            fetchMessages(convId);
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentConversationId) return;
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                const response = await fetch(CONFIG.N8N_WEBHOOK_SEND, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversationId: currentConversationId,
+                        message: message,
+                        agentName: CONFIG.AGENT_NAME
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Error sending message');
+                
+                input.value = '';
+                input.style.height = 'auto';
+                
+                showNotification('Message sent successfully');
+                
+                // Reload messages
+                await fetchMessages(currentConversationId);
+                await fetchConversations();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error sending message', 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send ➤';
+            }
+        }
+        
+        async function takeoverConversation() {
+            if (!currentConversationId) return;
+            
+            const takeoverBtn = document.getElementById('takeoverBtn');
+            takeoverBtn.disabled = true;
+            takeoverBtn.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                const response = await fetch(CONFIG.N8N_WEBHOOK_TAKEOVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversationId: currentConversationId,
+                        agentName: CONFIG.AGENT_NAME
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Error taking over conversation');
+                
+                showNotification('✅ Conversation taken over successfully!');
+                
+                // Reload data
+                await fetchConversations();
+                await fetchMessages(currentConversationId);
+                
+                takeoverBtn.innerHTML = '✅ Taken Over';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error taking over conversation', 'error');
+                takeoverBtn.disabled = false;
+                takeoverBtn.innerHTML = '🤚 Take Over';
+            }
+        }
+        
+        // ========================================
+        // EVENT LISTENERS
+        // ========================================
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+        
+        document.getElementById('takeoverBtn').addEventListener('click', takeoverConversation);
+        
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderConversations();
+            });
+        });
+        
+        // Search
+        document.getElementById('searchInput').addEventListener('input', () => {
+            renderConversations();
+        });
+        
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        function init() {
+            // Set agent name
+            document.getElementById('agentName').textContent = CONFIG.AGENT_NAME;
+            
+            // Load initial data
+            fetchConversations();
+            
+            // Auto-refresh
+            setInterval(() => {
+                fetchConversations();
+                if (currentConversationId) {
+                    fetchMessages(currentConversationId);
+                }
+            }, CONFIG.REFRESH_INTERVAL);
+        }
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
