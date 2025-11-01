@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Agent Interface - CORRECTED</title>
+    <title>WhatsApp Agent Interface - FINAL</title>
     <style>
         * {
             margin: 0;
@@ -287,7 +287,6 @@
         }
         
         .takeover-btn:hover:not(:disabled) {
-            background: #1da851;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
@@ -295,6 +294,7 @@
         .takeover-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
+            opacity: 0.6;
         }
         
         .messages-container {
@@ -816,8 +816,21 @@
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             
+            // ✅ TAKEOVER LOGIC - Agent peut toujours prendre en charge
             const takeoverBtn = document.getElementById('takeoverBtn');
-            takeoverBtn.disabled = fields.Status === 'ACTIVE';
+            const isActive = fields.Status === 'ACTIVE';
+            
+            // Toujours activer le bouton
+            takeoverBtn.disabled = false;
+            
+            // Adapter le texte selon le statut
+            if (isActive) {
+                takeoverBtn.innerHTML = '✅ Already Active';
+                takeoverBtn.style.background = '#28a745';
+            } else {
+                takeoverBtn.innerHTML = '🤚 Take Over';
+                takeoverBtn.style.background = '#25d366';
+            }
             
             // Mark as selected
             renderConversations();
@@ -837,7 +850,6 @@
             sendBtn.innerHTML = '<div class="loading"></div>';
             
             try {
-                // Extraire le numéro de téléphone (sans "whatsapp:+")
                 const phone = (currentConvData.Phone || '').replace('whatsapp:+', '');
                 
                 console.log('Sending message:', {
@@ -861,12 +873,20 @@
                 });
                 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Server response:', errorText);
-                    throw new Error('Error sending message');
+                    throw new Error('HTTP error ' + response.status);
                 }
                 
-                const result = await response.json();
+                // Gérer les réponses vides
+                const contentType = response.headers.get('content-type');
+                let result = null;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const text = await response.text();
+                    if (text && text.trim().length > 0) {
+                        result = JSON.parse(text);
+                    }
+                }
+                
                 console.log('Message sent successfully:', result);
                 
                 input.value = '';
@@ -874,16 +894,16 @@
                 
                 showNotification('✅ Message sent successfully');
                 
-                // Reload messages
+                // Reload messages après un délai
                 setTimeout(() => {
                     fetchMessages(currentConversationId);
-                }, 500);
+                }, 1000);
                 
                 await fetchConversations();
                 
             } catch (error) {
                 console.error('Error sending message:', error);
-                showNotification('❌ Error sending message', 'error');
+                showNotification('❌ Error sending message: ' + error.message, 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = 'Send ➤';
@@ -891,7 +911,7 @@
         }
 
         async function takeoverConversation() {
-            if (!currentConversationId) return;
+            if (!currentConversationId || !currentConvData) return;
             
             const takeoverBtn = document.getElementById('takeoverBtn');
             takeoverBtn.disabled = true;
@@ -911,19 +931,22 @@
                 
                 if (!response.ok) throw new Error('Error taking over conversation');
                 
-                showNotification('✅ Conversation taken over successfully!');
+                showNotification('✅ You are now handling this conversation!');
                 
                 // Reload data
                 await fetchConversations();
                 await fetchMessages(currentConversationId);
                 
-                takeoverBtn.innerHTML = '✅ Taken Over';
+                takeoverBtn.innerHTML = '✅ Already Active';
+                takeoverBtn.style.background = '#28a745';
+                takeoverBtn.disabled = false;
                 
             } catch (error) {
                 console.error('Error:', error);
-                showNotification('Error taking over conversation', 'error');
+                showNotification('❌ Error taking over conversation', 'error');
                 takeoverBtn.disabled = false;
                 takeoverBtn.innerHTML = '🤚 Take Over';
+                takeoverBtn.style.background = '#25d366';
             }
         }
 
